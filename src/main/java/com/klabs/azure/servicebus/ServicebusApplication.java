@@ -1,0 +1,66 @@
+package com.klabs.azure.servicebus;
+
+import com.azure.spring.messaging.checkpoint.Checkpointer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
+import org.springframework.integration.annotation.ServiceActivator;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.support.ErrorMessage;
+import org.springframework.messaging.support.MessageBuilder;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Sinks;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+import static com.azure.spring.messaging.AzureHeaders.CHECKPOINTER;
+import static  com.azure.spring.messaging.AzureHeaders.MESSAGE_SESSION;
+
+@SpringBootApplication
+public class ServicebusApplication {
+
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(ServicebusApplication.class);
+	private static final Sinks.Many<Message<String>> many = Sinks.many().unicast().onBackpressureBuffer();
+
+
+
+//	@Bean
+//	public Supplier<Flux<Message<String>>> supply() {
+//		return ()->many.asFlux()
+//				.doOnNext(m->LOGGER.info("Manually sending message {}", m))
+//				.doOnError(t->LOGGER.error("Error encountered", t));
+//	}
+
+	@Bean
+	public Consumer<Message<String>> consume() {
+		return message->{
+			Checkpointer checkpointer = (Checkpointer) message.getHeaders().get(CHECKPOINTER);
+			LOGGER.info("New message received: '{}'", message.getPayload());
+			checkpointer.success()
+					.doOnSuccess(s->LOGGER.info("Message '{}' successfully checkpointed", message.getPayload()))
+					.doOnError(e->LOGGER.error("Error found", e))
+					.block();
+		};
+	}
+//	@Bean
+//	public Consumer<Message<String>> dlq() {
+//		return message -> {
+//			System.out.println("Received message from DLQ: " + message.getPayload());
+//			// Optional: Inspect dead-letter reason/description headers here
+//		};
+//	}
+
+
+	@ServiceActivator(inputChannel = "errorChannel")
+	public void handleGlobalError(ErrorMessage message) {
+		// Handle the global error
+	}
+
+	public static void main(String[] args) {
+		SpringApplication.run(ServicebusApplication.class, args);
+	}
+
+}
