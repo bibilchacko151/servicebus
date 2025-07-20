@@ -1,5 +1,6 @@
 package com.klabs.azure.servicebus;
 
+import com.azure.messaging.servicebus.models.ServiceBusReceiveMode;
 import com.azure.spring.messaging.checkpoint.Checkpointer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -7,6 +8,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Profile;
 import org.springframework.integration.annotation.ServiceActivator;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.ErrorMessage;
@@ -19,7 +21,7 @@ import static com.azure.spring.messaging.AzureHeaders.CHECKPOINTER;
 import static  com.azure.spring.messaging.AzureHeaders.MESSAGE_SESSION;
 
 @SpringBootApplication
-public class ServicebusApplication {
+public class ServicebusApplication implements CommandLineRunner {
 
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ServicebusApplication.class);
@@ -35,6 +37,7 @@ public class ServicebusApplication {
 //	}
 
 	@Bean
+	@Profile(value = {"kedapocsub1","kedapocsub3"})
 	public Consumer<Message<String>> consume() {
 		return message->{
 			Checkpointer checkpointer = (Checkpointer) message.getHeaders().get(CHECKPOINTER);
@@ -45,22 +48,40 @@ public class ServicebusApplication {
 					.block();
 		};
 	}
-//	@Bean
-//	public Consumer<Message<String>> dlq() {
-//		return message -> {
-//			System.out.println("Received message from DLQ: " + message.getPayload());
-//			// Optional: Inspect dead-letter reason/description headers here
-//		};
-//	}
-
-
-	@ServiceActivator(inputChannel = "errorChannel")
-	public void handleGlobalError(ErrorMessage message) {
-		// Handle the global error
+	@Bean
+	@Profile("kedapocsub1")
+	public Consumer<Message<String>> dlqInput() {
+		return message -> {
+			System.out.println("Received message from DLQ: " + message.getPayload());
+			// Optional: Inspect dead-letter reason/description headers here
+		};
 	}
+
+	@Bean
+	@Profile("kedapocsub3")
+	public Consumer<Message<String>> dlqInputSub3() {
+		return message -> {
+			System.out.println("Received message from DLQ: " + message.getPayload());
+			// Optional: Inspect dead-letter reason/description headers here
+
+
+		};
+	}
+
+
+//	@ServiceActivator(inputChannel = "errorChannel")
+//	public void handleGlobalError(ErrorMessage message) {
+//		// Handle the global error
+//	}
 
 	public static void main(String[] args) {
 		SpringApplication.run(ServicebusApplication.class, args);
 	}
 
+	@Override
+	public void run(String... args) throws Exception {
+		LOGGER.info("Going to add message {} to Sinks.Many.", "Hello World");
+		many.emitNext(MessageBuilder.withPayload("Hello World").build(), Sinks.EmitFailureHandler.FAIL_FAST);
+	}
 }
+
