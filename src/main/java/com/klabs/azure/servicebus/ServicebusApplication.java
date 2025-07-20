@@ -37,7 +37,7 @@ public class ServicebusApplication implements CommandLineRunner {
 //	}
 
 	@Bean
-	@Profile(value = {"kedapocsub1","kedapocsub3"})
+	@Profile(value = {"kedapocsub1","kedapocsub2","kedapocsub3"})
 	public Consumer<Message<String>> consume() {
 		return message->{
 			Checkpointer checkpointer = (Checkpointer) message.getHeaders().get(CHECKPOINTER);
@@ -58,6 +58,17 @@ public class ServicebusApplication implements CommandLineRunner {
 	}
 
 	@Bean
+	@Profile("kedapocsub2")
+	public Consumer<Message<String>> dlqInputSub2() {
+		return message -> {
+			System.out.println("Received message from DLQ: " + message.getPayload());
+			// Optional: Inspect dead-letter reason/description headers here
+
+
+		};
+	}
+
+	@Bean
 	@Profile("kedapocsub3")
 	public Consumer<Message<String>> dlqInputSub3() {
 		return message -> {
@@ -69,10 +80,6 @@ public class ServicebusApplication implements CommandLineRunner {
 	}
 
 
-//	@ServiceActivator(inputChannel = "errorChannel")
-//	public void handleGlobalError(ErrorMessage message) {
-//		// Handle the global error
-//	}
 
 	public static void main(String[] args) {
 		SpringApplication.run(ServicebusApplication.class, args);
