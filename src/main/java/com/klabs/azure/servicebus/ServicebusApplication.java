@@ -50,7 +50,7 @@ public class ServicebusApplication implements CommandLineRunner {
 	}
 	@Bean
 	@Profile("kedapocsub1")
-	public Consumer<Message<String>> dlqInput() {
+	public Consumer<Message<String>> dlqInputSub1() {
 		return message -> {
 			System.out.println("Received message from DLQ: " + message.getPayload());
 			// Optional: Inspect dead-letter reason/description headers here
